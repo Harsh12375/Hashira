@@ -1,77 +1,45 @@
-// catalogPolynomial.js
-// 🚀 Creative / humanized version for Catalog Placements Assignment
-
 const fs = require("fs");
-const path = require("path");
 
-// Function to decode number from a given base
-function decodeValue(value, base) {
-    return BigInt(parseInt(value, base));
+function readJSON(path) {
+  return JSON.parse(fs.readFileSync(path, "utf-8"));
 }
 
-// Lagrange Interpolation at x = 0
-function lagrangeAtZero(xs, ys) {
-    let secret = BigInt(0);
-    let k = xs.length;
+function decode(base, value) {
+  return BigInt(parseInt(value, parseInt(base)));
+}
 
-    for (let i = 0; i < k; i++) {
-        let xi = BigInt(xs[i]);
-        let yi = BigInt(ys[i]);
-
-        let numerator = BigInt(1);
-        let denominator = BigInt(1);
-
-        for (let j = 0; j < k; j++) {
-            if (i !== j) {
-                numerator *= -BigInt(xs[j]);
-                denominator *= (xi - BigInt(xs[j]));
-            }
-        }
-
-        secret += yi * (numerator / denominator);
+function lagrange(points) {
+  let c = 0n;
+  for (let i = 0; i < points.length; i++) {
+    let [xi, yi] = points[i];
+    let num = 1n, den = 1n;
+    for (let j = 0; j < points.length; j++) {
+      if (i !== j) {
+        let [xj] = points[j];
+        num *= -BigInt(xj);
+        den *= BigInt(xi - xj);
+      }
     }
-
-    return secret;
+    c += yi * (num / den);
+  }
+  return c;
 }
 
-// MAIN FUNCTION
 function main() {
-    // Read JSON from input file
-    const filePath = path.join(__dirname, "input.json");
-    const raw = fs.readFileSync(filePath, "utf8");
-    const obj = JSON.parse(raw);
-
-    const n = obj.keys.n;
-    const k = obj.keys.k;
-
-    let xs = [];
-    let ys = [];
-
-    console.log("📥 Input loaded from JSON: n =", n, "k =", k);
-    console.log("\n🔑 Decoded roots (x, y):");
-
-    for (const key in obj) {
-        if (key !== "keys") {
-            let base = parseInt(obj[key].base);
-            let value = obj[key].value;
-
-            let y = decodeValue(value, base);
-            xs.push(parseInt(key));
-            ys.push(y);
-
-            console.log(`   (${key}, ${y})`);
-        }
+  const data = readJSON("input.json");
+  const n = data.keys.n;
+  const k = data.keys.k;
+  const points = [];
+  let count = 0;
+  for (let key in data) {
+    if (key !== "keys" && count < k) {
+      let x = parseInt(key);
+      let y = decode(data[key].base, data[key].value);
+      points.push([x, y]);
+      count++;
     }
-
-    // Only use first k roots
-    xs = xs.slice(0, k);
-    ys = ys.slice(0, k);
-
-    console.log("\n✨ Applying Lagrange Interpolation...");
-    const secret = lagrangeAtZero(xs, ys);
-
-    console.log("\n🎉 The hidden constant 'c' is:", secret.toString());
+  }
+  console.log("✨ The hidden constant 'c' is:", lagrange(points).toString());
 }
 
-// Run program
 main();
